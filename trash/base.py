@@ -4,23 +4,30 @@ from sklearn.base import BaseEstimator, TransformerMixin, clone
 class BaseTransformer(BaseEstimator, TransformerMixin):
     _overrides = ('fit','transform','fit_transform')
 
+    def super_getattr(self,attr):
+        return super(BaseTransformer,self).__getattribute__(attr)
+
     def __init__(self):
 	    pass
 
     def _fit_transform(self,X,y=None,**fit_params):
-        return super(BaseTransformer,self).__getattribute__('fit_transform')(X,y=y,**fit_params)
+        return self.super_getattr('fit_transform')(X,y=y,**fit_params)
 
     def _transform(self,X,**transform_params):
-        return super(BaseTransformer,self).__getattribute__('transform')(X,**transform_params)
+        return self.super_getattr('transform')(X,**transform_params)
 
     def transform(self,X,**transform_params):
         return X
 
     def fit(self,X,y=None,**fit_params):
+        """
+        To be overriden. Implement the logic needed for the fit method of your transformor, minus 
+        the logic that this library will take care of.
+        """
         return self
 
     def _fit(self,X,y=None,**fit_params):
-        return super(BaseTransformer,self).__getattribute__('fit')(X,y=y,**fit_params)
+        return self.super_getattr('fit')(X,y=y,**fit_params)
 
     def __getattribute__(self,attr):
         """
