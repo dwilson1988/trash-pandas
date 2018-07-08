@@ -5,7 +5,6 @@ from trash.base import BaseTransformer
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-t = BaseTransformer()
 
 df = pd.DataFrame({
     'a':[1.0,2.0,3.0,4.0,5.0],
@@ -16,6 +15,8 @@ df = pd.DataFrame({
 class DFStandardScaler(StandardScaler,BaseTransformer):
     pass
 
-
-ss = DFStandardScaler()
+print(dir(BaseTransformer))
+print(dir(StandardScaler))
+ss = DFStandardScaler(yo=True)
+print(dir(ss))
 print(ss.fit_transform(df))

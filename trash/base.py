@@ -23,18 +23,25 @@
 ###################################################################################################
 
 from __future__ import print_function, absolute_import, division
+from six import with_metaclass
 
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin, clone
 
-class BaseTransformer(BaseEstimator, TransformerMixin):
+class PDTransformerMetaClass(type):
+    def __call__(cls,*args,**kwargs):
+        print(args,kwargs)
+        kwargs.pop('yo')
+        instance = cls.__new__(cls,*args,**kwargs)
+        instance.__init__(*args,**kwargs)
+        return instance
+
+class BaseTransformer(with_metaclass(
+    PDTransformerMetaClass,BaseEstimator,TransformerMixin)):
     _overrides = ('fit','transform','fit_transform')
 
     def super_getattr(self,attr):
         return super(BaseTransformer,self).__getattribute__(attr)
-
-    def __init__(self):
-	    pass
 
     def _fit_transform(self,X,y=None,**fit_params):
         return self.super_getattr('fit_transform')(X,y=y,**fit_params)
