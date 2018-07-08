@@ -1,6 +1,8 @@
 <img src="images/logo.png" width="100" height="100">
 
 # trash-pandas
+
+## Introduction: What is `trash-pandas`?
 A helper library for integrating `pandas` and `scikit-learn`. It contains all the trash that everyone writes, but for some reason no one has really consolidated all that well into a library. 
 
 Both `scikit-learn` and `pandas` are terrific libraries. `scikit-learn`'s `Pipeline` and `
@@ -19,3 +21,10 @@ scikit-learn's functionality so that users can easily write their own `DataFrame
 `Transformers` as well as some `Transformers` that users commonly use.
 
 "Trash panda" is of course a nickname given to racoons by some people. 
+
+## What **isn't** `trash-pandas`?
+
+This is not an attempt to reproduce the work of `sklearn-pandas` or `pandas-ml`, both of which take a very different approach. 
+`trash-pandas` attempts to build a very light and thin layer to weave together `pandas` and `scikit-learn` in the most flexible way 
+possible so that users can do things mostly the same as always, but with less boilerplate and more flexibility. `pandas-ml` offers 
+a full integration of the two libraries and `sklearn-pandas` offers a way to build `DataFrame` friendly pipelines.
