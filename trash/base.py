@@ -30,8 +30,14 @@ from sklearn.base import BaseEstimator, TransformerMixin, clone
 
 class PDTransformerMetaClass(type):
     def __call__(cls,*args,**kwargs):
-        print(args,kwargs)
-        kwargs.pop('yo')
+        """
+        This metaclass takes care of object construction. It's important because
+        there are arguments that this metaclass can receive that are not valid
+        when wrapping, say, a scikit-learn transformer that takes no parameters.
+        This allows the functionality of this library to extend transformers
+        without overriding the constructor.
+        """
+
         instance = cls.__new__(cls,*args,**kwargs)
         instance.__init__(*args,**kwargs)
         return instance
