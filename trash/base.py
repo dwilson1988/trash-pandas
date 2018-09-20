@@ -109,11 +109,17 @@ class BaseTransformer(with_metaclass(
         return super(BaseTransformer,self).__getattribute__(attr)
 
     def _fit_transform(self,X,y=None,**fit_params):
+        if self.columns == 'all':
+            self.columns = X.columns
+
         return self.super_getattr('fit_transform')(X,y=y,**fit_params)
 
     def _transform(self,X,**transform_params):
+        if self.columns == 'all':
+            self.columns = X.columns
+
         Xt = self.super_getattr('transform')(X,**transform_params)
-        return pd.DataFrame(Xt,columns=self.column_names)
+        return pd.DataFrame(Xt,columns=self.columns)
 
     def transform(self,X,**transform_params):
         return X
@@ -126,7 +132,8 @@ class BaseTransformer(with_metaclass(
         return self
 
     def _fit(self,X,y=None,**fit_params):
-        self.column_names = X.columns
+        if self.columns == 'all':
+            self.columns = X.columns
 
         return self.super_getattr('fit')(X,y=y,**fit_params)
 
