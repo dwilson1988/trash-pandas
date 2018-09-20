@@ -29,6 +29,47 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin, clone
 
 class PDTransformerMetaClass(type):
+    """
+    This class inherits from a metaclass that manages parameters that shouldn't 
+    get passed to the constructor, but rather get managed by the wrapper 
+    BaseTransformer class wrapping the transformer. In addition to the original 
+    object's constructor, the object may optionally be provided the following
+    arguments.
+
+    Args:
+        columns (list of str or str): Which columns to apply this transformer on
+            or 'all' to specify use all columns. Default 'all'
+        na (str): How to handle NA values. 'ignore' will apply the 
+            transformer and leave na values in place. If 'drop', will drop rows 
+            containing any NA value. If 'impute', will replace values with specified
+            imputation scheme through the 'impute' argument. If 'raise', a exception
+            will be raised. 
+        impute_method (str, function, or dict of str or function): How to replace missing 
+            values, if na=='impute'. If it's a string, can be one of 'mean', 
+            'median', 'mode', 'zeros', 'ignore', or 'drop'. If it's a function, 
+            function must take a ``pd.Series`` (a column) and optional keyword 
+            arguments (passed in by 'impute_args' argument). If a dictionary, 
+            specify the imputation method as a str or function for each column.
+        impute_args (tuple or dict of tuples): arguments to user specified impute 
+            function(s). If a dict, specifies individual arguments for each column.
+        return_values (bool): If True, returns only the values. This is useful if 
+            trash.patch() has been called, which replaces scikit-learn transformers 
+            with ``pd.DataFrame`` friendly ones. Set to True if you want numpy arrays.
+
+    Examples:
+        >>> class DFStandardScaler(StandardScaler, BaseTransformer): pass
+        ...
+        >>> scaler_drop = DFStandardScaler(columns=['A','B'],na='ignore')
+        >>> scaler_impute = DFStandardScaler(columns='all',na='impute',impute='mean')
+    """
+    trash_defaults = {
+       'columns': 'all', 
+       'na':'raise',
+       'impute_method':None,
+       'impute_args':(),
+       'return_values':False
+    }
+
     def __call__(cls,*args,**kwargs):
         """
         This metaclass takes care of object construction. It's important because
@@ -37,9 +78,27 @@ class PDTransformerMetaClass(type):
         This allows the functionality of this library to extend transformers
         without overriding the constructor.
         """
+        # Extract the kwargs that trash-pandas uses.
+        trash_kwargs = {
+            k:kwargs.pop(k,v) \
+              for k,v in PDTransformerMetaClass.trash_defaults.items()
+        }
 
+        # Create instance using remaining kwargs
         instance = cls.__new__(cls,*args,**kwargs)
         instance.__init__(*args,**kwargs)
+
+        # Apply attributes to the instance. These will be available to BaseTransformer
+        for k,v in trash_kwargs.items():
+            setattr(instance,k,v)
+
+        if instance.na == 'impute' and instance.impute_method is None:
+            raise ValueError("'na' set to 'impute', but 'impute_method' is None!")
+        if (not isinstance(instance.columns,list)) and \
+           (not isinstance(instance.columns,str)):
+            raise ValueError("'columns' must be a list of column names or 'all'!")
+       
+        # Return the instance, constructor has already been called.
         return instance
 
 class BaseTransformer(with_metaclass(

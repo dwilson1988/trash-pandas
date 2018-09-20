@@ -15,8 +15,6 @@ df = pd.DataFrame({
 class DFStandardScaler(StandardScaler,BaseTransformer):
     pass
 
-print(dir(BaseTransformer))
-print(dir(StandardScaler))
-ss = DFStandardScaler(yo=True)
-print(dir(ss))
-print(ss.fit_transform(df))
+ss = DFStandardScaler(na='impute',impute_method='mean')
+
+print(ss.columns,ss.na,ss.impute_method,ss.impute_args,ss.return_values)
