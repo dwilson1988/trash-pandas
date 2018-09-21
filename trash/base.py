@@ -25,8 +25,11 @@
 from __future__ import print_function, absolute_import, division
 from six import with_metaclass
 
+import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin, clone
+
+from .misc import arraycheck
 
 class PDTransformerMetaClass(type):
     """
@@ -108,15 +111,17 @@ class BaseTransformer(with_metaclass(
     def super_getattr(self,attr):
         return super(BaseTransformer,self).__getattribute__(attr)
 
+    @arraycheck
     def _fit_transform(self,X,y=None,**fit_params):
         if self.columns == 'all':
-            self.columns = X.columns
+            self.columns = X.columns.tolist()
 
         return self.super_getattr('fit_transform')(X,y=y,**fit_params)
 
+    @arraycheck
     def _transform(self,X,**transform_params):
         if self.columns == 'all':
-            self.columns = X.columns
+            self.columns = X.columns.tolist()
 
         Xt = self.super_getattr('transform')(X,**transform_params)
         return pd.DataFrame(Xt,columns=self.columns)
@@ -131,9 +136,10 @@ class BaseTransformer(with_metaclass(
         """
         return self
 
+    @arraycheck
     def _fit(self,X,y=None,**fit_params):
         if self.columns == 'all':
-            self.columns = X.columns
+            self.columns = X.columns.tolist()
 
         return self.super_getattr('fit')(X,y=y,**fit_params)
 
@@ -147,3 +153,18 @@ class BaseTransformer(with_metaclass(
         if attr in super(BaseTransformer,self).__getattribute__('_overrides'):
             return super(BaseTransformer,self).__getattribute__('_'+attr)
         return super(BaseTransformer,self).__getattribute__(attr)
+
+
+class TypeSelector(BaseTransformer):
+    """
+    The simple pattern that selects data based on their type to work with mixed type DataFrames
+    """
+     
+    def __init__(self, dtype=np.float64):
+        self.dtype = dtype
+    
+    def transform(self, X):
+        assert isinstance(X, pd.DataFrame)
+        return X.select_dtypes(include=[self.dtype])
+
+
