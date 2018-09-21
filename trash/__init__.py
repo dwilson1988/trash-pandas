@@ -49,7 +49,7 @@ classes_to_patch = {
 
 patched = {}
 
-def patch():
+def patch(class_name=None):
     """
     Applies a patch to all scikit learn Transformers to work on pandas DataFrames
     """
@@ -62,13 +62,15 @@ def patch():
         mod = importlib.import_module(module)
         # Patch each class with a dynamically created metaclass that inherits from BaseTransformer.
         for cls in classes:
+            if class_name is not None and cls != class_name:
+                continue
             patched[module].append(getattr(mod,cls))
             # This line creates a new metaclass (type) and replaces the original class in the module.
             setattr(mod,cls,
                 type(cls,(getattr(mod,cls),BaseTransformer),{})
             ) 
 
-def unpatch():
+def unpatch(class_name=None):
     """
     Reverses the patch by replacing classes with the originals
     """
@@ -78,6 +80,8 @@ def unpatch():
         mod = importlib.import_module(module)
         # Patch each class with a dynamically created metaclass that inherits from BaseTransformer.
         for cls in classes:
+            if class_name is not None and cls != class_name:
+                continue
             # This line creates a new metaclass (type) and replaces the original class in the module.
             setattr(mod,cls.__name__,cls) 
 
