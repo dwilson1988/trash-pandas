@@ -35,7 +35,14 @@ classes_to_patch = {
     'sklearn.preprocessing': [
         'StandardScaler',
         'Binarizer',
-        'FunctionTransformer'
+        'FunctionTransformer',
+        'MaxAbsScaler',
+        'MinMaxScaler',
+        'Normalizer',
+        'OneHotEncoder',
+        'PolynomialFeatures',
+        'QuantileTransformer',
+        'RobustScaler'
     ]
 }
 
