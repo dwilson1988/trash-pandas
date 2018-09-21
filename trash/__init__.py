@@ -24,6 +24,7 @@
 
 import os
 import importlib
+import warnings
 
 from .base import BaseTransformer
 
@@ -46,21 +47,38 @@ classes_to_patch = {
     ]
 }
 
-patched = []
+patched = {}
 
 def patch():
     """
     Applies a patch to all scikit learn Transformers to work on pandas DataFrames
     """
-
+    warnings.warn('Calling `trash.patch` modified scikit-learn (runtime),'
+        ' be sure you understand the consequences of this action')
     # Loop through 'classes_to_patch'
     for module,classes in classes_to_patch.items():
+        patched[module] = []
+        # Import the module that contains classes to patch
+        mod = importlib.import_module(module)
+        # Patch each class with a dynamically created metaclass that inherits from BaseTransformer.
+        for cls in classes:
+            patched[module].append(getattr(mod,cls))
+            # This line creates a new metaclass (type) and replaces the original class in the module.
+            setattr(mod,cls,
+                type(cls,(getattr(mod,cls),BaseTransformer),{})
+            ) 
+
+def unpatch():
+    """
+    Reverses the patch by replacing classes with the originals
+    """
+    for module,classes in patched.items():
+        
         # Import the module that contains classes to patch
         mod = importlib.import_module(module)
         # Patch each class with a dynamically created metaclass that inherits from BaseTransformer.
         for cls in classes:
             # This line creates a new metaclass (type) and replaces the original class in the module.
-            setattr(mod,cls,
-                type(cls,(getattr(mod,cls),BaseTransformer),{})
-            ) 
-    
+            setattr(mod,cls.__name__,cls) 
+
+

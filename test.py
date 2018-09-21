@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from trash.base import BaseTransformer
+import trash
+trash.patch()
 
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -11,10 +12,6 @@ df = pd.DataFrame({
     'b':[0,1,1,1,16]
 })
 
-
-class DFStandardScaler(StandardScaler,BaseTransformer):
-    pass
-
-ss = DFStandardScaler(na='impute',impute_method='mean')
+ss = StandardScaler()
 
 print(ss.columns,ss.na,ss.impute_method,ss.impute_args,ss.return_values)
