@@ -30,7 +30,7 @@ import sklearn.preprocessing as sp
 
 from trash.base import BaseTransformer
 
-__all__ = ['BaseTransformer','patched','patch']
+__version__ = '0.0.1'
 
 # Define the patched methods. This can be imported directly or patched into scikit learn
 class StandardScaler(sp.StandardScaler, BaseTransformer): pass
