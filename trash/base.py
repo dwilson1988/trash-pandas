@@ -31,7 +31,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.preprocessing import Imputer
 
-from trash.misc import arraycheck
+from trash.utils import arraycheck
 
 class PDTransformerMetaClass(type):
     """
@@ -149,45 +149,45 @@ class BaseTransformer(with_metaclass(
         if self.columns_out is None:
             self.columns_out = self.columns
             
-        self._handle_na(X)
-        Xt,yt = self._select(X,y=y)
+        Xt = self._handle_na(X,y)
+        Xt,yt = self._select(Xt,y=y)
         return self.super_getattr('fit')(Xt,y=yt,**fit_params)
 
-    def _handle_na(self,X):
-        return getattr(self,'_na_'+self.impute_method)(X)
+    def _handle_na(self,X,y):
+        return getattr(self,'_na_'+self.na)(X,y)
 
-    def _na_ignore(self,X):
-        self.where_mask = ~X.isna()
-        return X.where(self.where_mask)
+    def _na_ignore(self,X,y):
+        return X,y
 
-    def _na_drop(self,X):
-        return X.dropna()
+    def _na_drop(self,X,y):
+        idx = ~X.isna(axis=0)
+        return X.dropna(),y.loc[idx]
 
-    def _na_raise(self,X):
+    def _na_raise(self,X,y):
         if X.isna().sum():
             raise ValueError("In transformer `{}`. Was passed DataFrame with NA values!".format(
                 self.__class__.__name__))
-        return X
+        return X,y
 
-    def _na_impute(self,X):
+    def _na_impute(self,X,y):
         if self.impute_method in ['mean','median','most_frequent']:
             value = getattr(X,self.impute_method)(axis=0)
-            return X.fillna(value)
+            return X.fillna(value),y
         
         elif self.impute_method == zeros:
-            return X.fillna(0)
+            return X.fillna(0),y
         
         elif callable(self.impute_method):
             Xt = X.copy()
             for column in self.columns:
                 Xt.loc[:,column] = self.impute_method(X.xs(column,axis=1))
-            return Xt
+            return Xt,y
         elif isinstance(self.impute_method,dict):
             Xt = X.copy()
             for column,func in self.impute_method.items():
                 Xt.loc[:,column] = func(X.xs(column,axis=1))
         else:
-            return X
+            return X,y
 
     def _select(self,X,y=None):
         """

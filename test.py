@@ -13,7 +13,7 @@ df = pd.DataFrame({
     'b':[0,np.nan,1,1,16]
 })
 
-ss = StandardScaler()
+ss = StandardScaler(na='impute',impute_method='mean')
 
 print(ss.columns,ss.na,ss.impute_method,ss.impute_args,ss.return_values)
 
