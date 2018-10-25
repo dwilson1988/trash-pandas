@@ -25,11 +25,13 @@
 from __future__ import print_function, absolute_import, division
 from six import with_metaclass
 
+import dill
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin, clone
+from sklearn.preprocessing import Imputer
 
-from .misc import arraycheck
+from trash.misc import arraycheck
 
 class PDTransformerMetaClass(type):
     """
@@ -49,7 +51,7 @@ class PDTransformerMetaClass(type):
             will be raised. 
         impute_method (str, function, or dict of str or function): How to replace missing 
             values, if na=='impute'. If it's a string, can be one of 'mean', 
-            'median', 'mode', 'zeros', 'ignore', or 'drop'. If it's a function, 
+            'median', 'mode', or 'zeros'. If it's a function, 
             function must take a ``pd.Series`` (a column) and optional keyword 
             arguments (passed in by 'impute_args' argument). If a dictionary, 
             specify the imputation method as a str or function for each column.
@@ -65,13 +67,6 @@ class PDTransformerMetaClass(type):
         >>> scaler_drop = DFStandardScaler(columns=['A','B'],na='ignore')
         >>> scaler_impute = DFStandardScaler(columns='all',na='impute',impute='mean')
     """
-    trash_defaults = {
-       'columns': 'all', 
-       'na':'raise',
-       'impute_method':None,
-       'impute_args':(),
-       'return_values':False
-    }
 
     def __call__(cls,*args,**kwargs):
         """
@@ -83,13 +78,21 @@ class PDTransformerMetaClass(type):
         """
         # Extract the kwargs that trash-pandas uses.
         trash_kwargs = {
-            k:kwargs.pop(k,v) \
-              for k,v in PDTransformerMetaClass.trash_defaults.items()
+            'columns': kwargs.pop('columns','all'),
+            'na': kwargs.pop('na','raise'),
+            'impute_method': kwargs.pop('impute_method','raise'),
+            'impute_args': kwargs.pop('impute_args',()),
+            'return_values': kwargs.pop('return_values',False)
         }
 
         # Create instance using remaining kwargs
         instance = cls.__new__(cls,*args,**kwargs)
         instance.__init__(*args,**kwargs)
+
+        # Intialize to unmasked na values
+        setattr(instance,'where_mask',None)
+        # Output columns will be the same as input columns unless otherwise specified.
+        setattr(instance,'columns_out',None)
 
         # Apply attributes to the instance. These will be available to BaseTransformer
         for k,v in trash_kwargs.items():
@@ -103,10 +106,11 @@ class PDTransformerMetaClass(type):
        
         # Return the instance, constructor has already been called.
         return instance
+    
 
 class BaseTransformer(with_metaclass(
     PDTransformerMetaClass,BaseEstimator,TransformerMixin)):
-    _overrides = ('fit','transform','fit_transform')
+    _overrides = {'fit','transform','fit_transform'}
 
     def super_getattr(self,attr):
         return super(BaseTransformer,self).__getattribute__(attr)
@@ -115,16 +119,18 @@ class BaseTransformer(with_metaclass(
     def _fit_transform(self,X,y=None,**fit_params):
         if self.columns == 'all':
             self.columns = X.columns.tolist()
+        if self.columns_out is None:
+            self.columns_out = self.columns
 
         return self.super_getattr('fit_transform')(X,y=y,**fit_params)
 
     @arraycheck
     def _transform(self,X,**transform_params):
-        if self.columns == 'all':
-            self.columns = X.columns.tolist()
+        X_select = self._select(X)
 
-        Xt = self.super_getattr('transform')(X,**transform_params)
-        return pd.DataFrame(Xt,columns=self.columns)
+        Xt = self.super_getattr('transform')(X_select,**transform_params)
+
+        return self._as_dataframe(Xt)
 
     def transform(self,X,**transform_params):
         return X
@@ -140,8 +146,57 @@ class BaseTransformer(with_metaclass(
     def _fit(self,X,y=None,**fit_params):
         if self.columns == 'all':
             self.columns = X.columns.tolist()
+        if self.columns_out is None:
+            self.columns_out = self.columns
+            
+        self._handle_na(X)
+        Xt,yt = self._select(X,y=y)
+        return self.super_getattr('fit')(Xt,y=yt,**fit_params)
 
-        return self.super_getattr('fit')(X,y=y,**fit_params)
+    def _handle_na(self,X):
+        return getattr(self,'_na_'+self.impute_method)(X)
+
+    def _na_ignore(self,X):
+        self.where_mask = ~X.isna()
+        return X.where(self.where_mask)
+
+    def _na_drop(self,X):
+        return X.dropna()
+
+    def _na_raise(self,X):
+        if X.isna().sum():
+            raise ValueError("In transformer `{}`. Was passed DataFrame with NA values!".format(
+                self.__class__.__name__))
+        return X
+
+    def _na_impute(self,X):
+        if self.impute_method in ['mean','median','most_frequent']:
+            value = getattr(X,self.impute_method)(axis=0)
+            return X.fillna(value)
+        
+        elif self.impute_method == zeros:
+            return X.fillna(0)
+        
+        elif callable(self.impute_method):
+            Xt = X.copy()
+            for column in self.columns:
+                Xt.loc[:,column] = self.impute_method(X.xs(column,axis=1))
+            return Xt
+        elif isinstance(self.impute_method,dict):
+            Xt = X.copy()
+            for column,func in self.impute_method.items():
+                Xt.loc[:,column] = func(X.xs(column,axis=1))
+        else:
+            return X
+
+    def _select(self,X,y=None):
+        """
+        Selects specific subset of the data, for example rows not containing nan
+        """
+        return X.loc[:,self.columns], y
+
+    def _as_dataframe(self,X):
+        return pd.DataFrame(X,columns=self.columns_out)
 
     def __getattribute__(self,attr):
         """

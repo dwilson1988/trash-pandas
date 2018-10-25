@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 df = pd.DataFrame({
     'a':[1.0,2.0,3.0,4.0,5.0],
-    'b':[0,1,1,1,16]
+    'b':[0,np.nan,1,1,16]
 })
 
 ss = StandardScaler()
