@@ -126,9 +126,11 @@ class BaseTransformer(with_metaclass(
 
     @arraycheck
     def _transform(self,X,**transform_params):
-        X_select = self._select(X)
+        Xt,_ = self._select(X)
 
-        Xt = self.super_getattr('transform')(X_select,**transform_params)
+        Xt,yt = self._handle_na(Xt,None)
+
+        Xt = self.super_getattr('transform')(Xt,**transform_params)
 
         return self._as_dataframe(Xt)
 
@@ -149,8 +151,8 @@ class BaseTransformer(with_metaclass(
         if self.columns_out is None:
             self.columns_out = self.columns
             
-        Xt = self._handle_na(X,y)
-        Xt,yt = self._select(Xt,y=y)
+        Xt,yt = self._select(X,y=y)
+        Xt,yt = self._handle_na(Xt,yt)
         return self.super_getattr('fit')(Xt,y=yt,**fit_params)
 
     def _handle_na(self,X,y):
@@ -161,6 +163,8 @@ class BaseTransformer(with_metaclass(
 
     def _na_drop(self,X,y):
         idx = ~X.isna(axis=0)
+        if y is None:
+            return X.dropna()
         return X.dropna(),y.loc[idx]
 
     def _na_raise(self,X,y):

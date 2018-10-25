@@ -14,7 +14,6 @@ def arraycheck(f):
     def wrapped(*args,**kwargs):
         self = args[0]
         X = args[1]
-
         if isinstance(X,np.ndarray):
             return self.super_getattr(method_name[1:])(*args[1:],**kwargs)
         return f(*args,**kwargs)

@@ -36,7 +36,6 @@ __all__ = ['BaseTransformer','patched','patch']
 class StandardScaler(sp.StandardScaler, BaseTransformer): pass
 class Binarizer(sp.Binarizer, BaseTransformer): pass
 class FunctionTransformer(sp.FunctionTransformer, BaseTransformer): pass
-class PowerTransformer(sp.PowerTransformer, BaseTransformer): pass
 class MaxAbsScaler(sp.MaxAbsScaler, BaseTransformer): pass
 class MinMaxScaler(sp.MinMaxScaler, BaseTransformer): pass
 class RobustScaler(sp.RobustScaler, BaseTransformer): pass
@@ -48,7 +47,6 @@ classes_to_patch = {
         'StandardScaler':StandardScaler,
         'Binarizer':Binarizer,
         'FunctionTransformer':FunctionTransformer,
-        'PowerTransformer':PowerTransformer,
         'MaxAbsScaler':MaxAbsScaler,
         'MinMaxScaler':MinMaxScaler,
         'Normalizer':Normalizer,
