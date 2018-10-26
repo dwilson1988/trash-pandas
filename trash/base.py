@@ -200,7 +200,13 @@ class BaseTransformer(with_metaclass(
         return X.loc[:,self.columns], y
 
     def _as_dataframe(self,X):
-        return pd.DataFrame(X,columns=self.columns_out)
+        if self.return_values:
+            try:
+                return x.values
+            except AttributeError:
+                return X
+        else:
+            return pd.DataFrame(X,columns=self.columns_out)
 
     def __getattribute__(self,attr):
         """
